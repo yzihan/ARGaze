@@ -12,26 +12,7 @@ We provided source code and scripts for the following three stages and few sub-s
 
 The complete process of the dataset is presented below. Note that the description below only focus on one specific participant's data, we will use `P?` to refer to the participant in the following text. Without any extra description, the data in the following text will also refer to one specific participant's data.
 
-```mermaid
-graph LR
-raw(Raw Data)
-inter(Intermediate<br>Dataset)
-target(Uploaded Dataset)
-train(Train split)
-test(Test split)
-result(Validation<br>Result)
-prep([Preprocess])
-anaprep([Analysis<br><i>&ltPrepare&gt</i>])
-anarun([Analysis<br><i>&ltRun&gt</i>])
-pack([Packaging])
-
-raw-->prep-->inter
-inter-->pack-->target
-inter-->anaprep
-anaprep-->train-->anarun
-anaprep-->test-->anarun
-anarun-->result
-```
+![](imgs/1.jpg)
 
 ## Preprocessing
 
@@ -39,32 +20,7 @@ In this stage, we generate the dataset from video inputs and annotations. The in
 
 There are three close-related processes in preprocessing: preview image generation (`diffpreview.py`), eye detection (manual operation) and dataset building (`gendataset.py`)
 
-```mermaid
-graph TB
-raw(Raw Data)
-inter(Intermediate<br>Dataset)
-cut1(cut1.mp4)
-cut2(cut2.mp4)
-dp1([Previewing<br><i>&ltdiffpreview.py&gt</i>])
-dp2([Previewing<br><i>&ltdiffpreview.py&gt</i>])
-cut1p(cut1.preview.png)
-cut2p(cut2.preview.png)
-manual([Eye Detection<br><i>&ltmanual&gt</i>])
-eyelist(eyelist.txt)
-gen([Building<br><i>&ltgendataset.py&gt</i>])
-s1(serial1)
-s2(serial2)
-raw-.-cut1
-raw-.-cut2
-cut1-->gen
-cut1-->dp1-->cut1p-->manual-->eyelist-->gen
-cut2-->dp2-->cut2p-->manual
-gen-->s1
-gen-->s2
-cut2-->gen
-s1-.-inter
-s2-.-inter
-```
+![](imgs/2.jpg)
 
 It is worthy mentioning that we have to write a `eyelist.txt` manually to describe the position of eye under the eye camera.
 
@@ -105,43 +61,7 @@ In the following flowgraph, we only present the simplest task: predicting user-d
 
 You can run `main.py --help` for its usage.
 
-```mermaid
-graph TB
-inter(Intermediate<br>Dataset)
-s1(serial1)
-s2(serial2)
-s101(serial101<br>Testset<br><i>+3000 &#x7e +6000</i>)
-s102(serial102<br>Trainset<br><i>+6000 &#x7e end-2000</i>)
-s103(serial103<br><i>+0 &#x7e +10000</i>)
-s201(serial201<br>Testset<br><i>+3000 &#x7e +6000</i>)
-s202(serial202<br>Trainset<br><i>+6000 &#x7e end-2000</i>)
-s203(serial203<br><i>+0 &#x7e +10000</i>)
-prep1((Prepare<br><i>&ltsplit.py&gt</i>))
-prep2((Prepare<br><i>&ltsplit.py&gt</i>))
-train1((Train<br>&<br>Validate<br><i>&ltmain.py&gt</i>))
-train2((Train<br>&<br>Validate<br><i>&ltmain.py&gt</i>))
-result1(P?S1<br>Single-person<br>Validation Result)
-result2(P?S2<br>Single-person<br>Validation Result)
-inter-.-s1
-inter-.-s2
-s1-->prep1-->s101
-s2-->prep2-->s201
-prep1-->s102
-prep1-->s103
-prep2-->s202
-prep2-->s203
-s101-->train1
-s102-->train1
-s201-->train2
-s202-->train2
-subgraph Single-person validation for P?S1
-train1-->result1
-end
-subgraph Single-person validation for P?S2
-train2-->result2
-end
-```
-
+![](imgs/3.jpg)
 
 
 ## Packaging
