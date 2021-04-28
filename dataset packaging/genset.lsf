@@ -1,0 +1,69 @@
+#!/bin/bash
+### General options
+### -- set the job Name --
+#BSUB -J gen_dataset
+### -- ask for number of cores (default: 1) --
+#BSUB -n 1
+### -- specify gpu resources usage (default: no gpu) exclusively use a gpu per task --
+#####BSUB -gpu "num=1:j_exclusive=yes"
+### -- exclude gpu00 since it's faulty
+#BSUB -R "select[hname!='gpu00']"
+### -- specify that the cores MUST BE on a single host! It's a SMP job! --
+#BSUB -R "span[hosts=1]"
+### -- set walltime limit: hh:mm --
+#BSUB -W 24:00
+### -- specify that we need 2GB of memory per core/slot -- 
+#BSUB -R "rusage[mem=40GB]"
+### -- Specify the output and error file. %J is the job-id -- 
+### -- -o and -e mean append, -oo and -eo mean overwrite -- 
+#BSUB -o gen_%J.out
+#BSUB -e gen_%J.err
+
+### # set OMP_NUM_THREADS _and_ export! 
+### OMP_NUM_THREADS=$LSB_DJOB_NUMPROC 
+### export OMP_NUM_THREADS 
+### ------------------------------- Program_name_and_options 
+### -- CUDA_VISIBLE_DEVICES will be set automatically --
+
+
+### PERSON=1
+### IN_SERIAL=1
+### OUT_SERIAL=
+[[ -z "$PERSON" ]] && (
+	echo \$PERSON unset
+	exit 1
+)
+[[ -z "$IN_SERIAL" ]] && (
+	echo \$TRAIN_SERIAL unset
+	exit 1
+)
+[[ -z "$OUT_SERIAL" ]] && export OUT_SERIAL=$IN_SERIAL
+
+mkdir_safe() {
+	[[ ! -d "$1" ]] && mkdir -p "$1"
+}
+
+set -x
+
+if [[ ! -f /tmp/memdisk/data_p${PERSON}s$IN_SERIAL/0.png ]]; then
+	mkdir_safe "/tmp/memdisk/data_p${PERSON}s$IN_SERIAL"
+	ffmpeg -hide_banner -loglevel warning -i "dataset2_test${PERSON}/serial$IN_SERIAL/0/all.mp4" -vf "scale=iw/2:ih/2" "/tmp/memdisk/data_p${PERSON}s$IN_SERIAL/%d.png" || exit 1
+	cp "/tmp/memdisk/data_p${PERSON}s$IN_SERIAL/1.png" "/tmp/memdisk/data_p${PERSON}s$IN_SERIAL/0.png"
+fi
+#ffmpeg -hide_banner -loglevel warning -i "dataset2_test${PERSON}/serial$IN_SERIAL/0/all.mp4" "dataset2_test${PERSON}/serial$IN_SERIAL/0/%d.png"
+#cp "dataset2_test${PERSON}/serial$IN_SERIAL/0/1.png" "dataset2_test${PERSON}/serial$IN_SERIAL/0/0.png"
+
+./genset.py $PERSON $IN_SERIAL $OUT_SERIAL
+
+#rm "dataset2_test${PERSON}/serial$IN_SERIAL/0/*.png"
+rm -r "/tmp/memdisk/data_p${PERSON}s$IN_SERIAL"
+
+OK=0
+
+if [[ -f "/tmp/memdisk/person${PERSON}_serie$IN_SERIAL/target.npy" ]]; then
+	pushd /tmp/memdisk
+	tar -cf - person${PERSON}_serie$IN_SERIAL | pigz -9 -p 24 > person${PERSON}_serie${IN_SERIAL}.tgz && OK=1
+	popd
+fi
+rm -r /tmp/memdisk/person${PERSON}_serie$IN_SERIAL/
+[[ $OK -ne 0 ]] && cp /tmp/memdisk/person${PERSON}_serie${IN_SERIAL}.tgz /mnt/sdc/ && rm /tmp/memdisk/person${PERSON}_serie${IN_SERIAL}.tgz
